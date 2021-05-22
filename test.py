@@ -5,10 +5,9 @@ from fastapi.testclient import TestClient
 from main import app, get_exchange_rate, get_utc_time
 
 
-
 client = TestClient(app)
 
-app.db_connection= sqlite3.connect("database_test.db")
+app.db_connection = sqlite3.connect("database_test.db")
 app.db_connection.execute("""DELETE FROM LastReportForCustomer""")
 
 app.db_connection.execute("""DELETE FROM Report""")
@@ -269,7 +268,7 @@ response_body2 = [{
     "currency": "PLN",
     "amount": 2450,
     "amount_in_pln": 2450
-  },{
+  }, {
     "customer_id": 4566666666646,
     "date": "2021-05-13T09:01:43Z",
     "type": "pay_by_link",
@@ -278,7 +277,7 @@ response_body2 = [{
     "currency": "EUR",
     "amount": 3000,
     "amount_in_pln": 13494
-  },{
+  }, {
     "customer_id": 4566666666646,
     "date": "2021-05-14T08:27:09Z",
     "type": "dp",
@@ -287,7 +286,7 @@ response_body2 = [{
     "currency": "USD",
     "amount": 599,
     "amount_in_pln": 2219
-  },{
+  }, {
     "customer_id": 4566666666646,
     "date": "2021-05-14T18:32:26Z",
     "type": "card",
