@@ -303,8 +303,8 @@ async def report_pay_id(report: RequestReport):
     dp_requester(report.dp, data_req,  True)
     if report.card is None:
         report.card = []
-
     card_requester(report.card, data_req, True)
+    
     app.last_payment_info.sort(key=get_date)
 
     c_id = try_id(report.pay_by_link, report.dp, report.card)
