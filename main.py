@@ -270,7 +270,7 @@ def get_last_report_for_customer(customer_id):
     app.db_connection.commit()
 
     data = app.db_connection.execute(
-        f"""SELECT CustomerID, Date date, Type type, PaymentMean payment_mean, Description description,
+        f"""SELECT CustomerID customer_id, Date date, Type type, PaymentMean payment_mean, Description description,
          Currency currency, Amount amount, AmountInPln amount_in_pln FROM Report
          WHERE CustomerID = {customer_id} and CreationDate = '{last_report_date["LastReportDate"]}'
          ORDER BY Date ASC""").fetchall()
