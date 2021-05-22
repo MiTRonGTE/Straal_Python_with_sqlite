@@ -41,11 +41,11 @@ http://127.0.0.1:8000/docs
 
 Api is available on heroku cloud:
 
-https://recruitment-task-straal.herokuapp.com/
+https://recruitment-task-straal-db.herokuapp.com/
 
 API docs:
 
-https://recruitment-task-straal.herokuapp.com/docs
+https://recruitment-task-straal-db.herokuapp.com/docs
 
 ## Pytest
 
