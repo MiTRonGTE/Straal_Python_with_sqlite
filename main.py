@@ -315,10 +315,10 @@ async def report_pay_id(report: RequestReport):
 
 
 # endpoint wyświetlający raport dla wskazanego id
-@app.get("/customer-report/{cust_id}")
-async def customer_report_id(cust_id: int):
+@app.get("/customer-report/{customer_id}")
+async def customer_report_id(customer_id: int):
 
-    data = get_last_report_for_customer(cust_id)
+    data = get_last_report_for_customer(customer_id)
     if data:
         return data
     else:
