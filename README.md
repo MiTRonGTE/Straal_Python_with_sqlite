@@ -12,6 +12,7 @@ This application is simple http service that prepares report of client's transac
 
 ## Used technologies
 * Python 3.8
+* sqlite3
 * fastapi
 * uvicorn
 * pytest
