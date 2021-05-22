@@ -169,8 +169,6 @@ def try_currency(currency):
 
 # potwierdzenie że wszystkie wysłane id klienta są takie same a następnie zwrócenie id_customer
 def try_id(pbl, dp, card):
-    if pbl is None and dp is None and card is None:
-        return
 
     if len(pbl) > 0 and pbl[0].customer_id:
         id_customer = pbl[0].customer_id
@@ -187,11 +185,11 @@ def try_id(pbl, dp, card):
     max_len = max(pbl_len, dp_len, card_len)
 
     for i in range(max_len):
-        if i < pbl_len and pbl[i].customer_id != id_customer:
+        if i < pbl_len and pbl[i].customer_id != id_customer and type(pbl[i].customer_id) != int:
             raise HTTPException(status_code=400)
-        if i < dp_len and dp[i].customer_id != id_customer:
+        if i < dp_len and dp[i].customer_id != id_customer and type(dp[i].customer_id) != int:
             raise HTTPException(status_code=400)
-        if i < card_len and card[i].customer_id != id_customer:
+        if i < card_len and card[i].customer_id != id_customer and type(card[i].customer_id) != int:
             raise HTTPException(status_code=400)
 
     return id_customer
@@ -273,7 +271,8 @@ def get_last_report_for_customer(customer_id):
     # return get_raport_customerid(customer_id, last_report_date)
 
     data = app.db_connection.execute(
-        f"""SELECT CustomerID, Date date, Type type, PaymentMean payment_mean, Description description, Currency currency, Amount amount, AmountInPln amount_in_pln FROM Report 
+        f"""SELECT CustomerID, Date date, Type type, PaymentMean payment_mean, Description description,
+         Currency currency, Amount amount, AmountInPln amount_in_pln FROM Report 
         WHERE CustomerID = {customer_id} and CreationDate = '{last_report_date["LastReportDate"]}' ORDER BY Date ASC""").fetchall() # nie działa przez CreationDate
     app.db_connection.commit()
     return data
