@@ -161,7 +161,6 @@ def card_requester(card_array, creation_date, raport=False):
             raise HTTPException(status_code=400)
 
 
-
 def try_currency(currency):
     if currency.upper() not in ['EUR', 'USD', 'GBP', 'PLN']:
         raise HTTPException(status_code=400)
@@ -212,7 +211,6 @@ def get_exchange_rate(currency, utc_date):
         raise HTTPException(status_code=400)
 
 
-
 # funkcja potrzebna do sortowania response po dacie
 def get_date(dictionary):
     return dictionary.get("date")
@@ -232,16 +230,19 @@ def send_report_to_db(converted, creation_date, raport: bool):
     if not raport:
         return
     app.db_connection.execute(
-        f"""INSERT INTO Report (CustomerID, Date, Type, PaymentMean, Description, Currency, Amount, AmountInPln, CreationDate) VALUES
-                    ({converted['customer_id']}, '{converted['date']}', '{converted['type']}', '{converted['payment_mean']}',
-                      '{converted['description']}', '{converted['currency']}', {converted['amount']}, {converted['amount_in_pln']}, '{creation_date}')""")
+        f"""INSERT INTO Report
+        (CustomerID, Date, Type, PaymentMean, Description, Currency, Amount, AmountInPln, CreationDate)
+        VALUES ({converted['customer_id']}, '{converted['date']}', '{converted['type']}',
+        '{converted['payment_mean']}', '{converted['description']}', '{converted['currency']}',
+        {converted['amount']}, {converted['amount_in_pln']}, '{creation_date}')""")
     app.db_connection.commit()
+
 
 def try_id_database(try_id: int, category: str):
     app.db_connection.row_factory = sqlite3.Row
     id_exist = app.db_connection.execute(
         f"SELECT 1 FROM {category} WHERE CustomerID = {try_id}").fetchone()
-    if not id_exist:
+    if id_exist is None:
         return False
     return True
 
@@ -250,7 +251,8 @@ def add_to_last_report_for_customer(customer_id, creation_date):
     if not try_id_database(customer_id, "LastReportForCustomer"):
         # app.db_connection.row_factory = sqlite3.Row
         app.db_connection.execute(
-            f"""INSERT INTO LastReportForCustomer (CustomerID, LastReportDate) VALUES ({customer_id}, '{creation_date}')""")
+            f"""INSERT INTO LastReportForCustomer (CustomerID, LastReportDate)
+            VALUES ({customer_id}, '{creation_date}')""")
 
     elif try_id_database(customer_id, "LastReportForCustomer"):
         # app.db_connection.row_factory = sqlite3.Row
@@ -263,38 +265,26 @@ def get_last_report_for_customer(customer_id):
     if not try_id_database(customer_id, "LastReportForCustomer"):
         raise HTTPException(status_code=400)
 
-
     last_report_date = app.db_connection.execute(
         f"""SELECT LastReportDate FROM LastReportForCustomer WHERE CustomerID = {customer_id}""").fetchone()
     app.db_connection.commit()
 
-    # return get_raport_customerid(customer_id, last_report_date)
-
     data = app.db_connection.execute(
         f"""SELECT CustomerID, Date date, Type type, PaymentMean payment_mean, Description description,
-         Currency currency, Amount amount, AmountInPln amount_in_pln FROM Report 
-        WHERE CustomerID = {customer_id} and CreationDate = '{last_report_date["LastReportDate"]}' ORDER BY Date ASC""").fetchall() # nie działa przez CreationDate
+         Currency currency, Amount amount, AmountInPln amount_in_pln FROM Report
+         WHERE CustomerID = {customer_id} and CreationDate = '{last_report_date["LastReportDate"]}'
+         ORDER BY Date ASC""").fetchall()
     app.db_connection.commit()
     return data
-
-
-# do pobierania raportów
-# def get_raport_customerid(customer_report_id, creation_date):
-#
-#     data = app.db_connection.execute(
-#         f"""SELECT CustomerID, Date, Type, PaymentMean, Description, Currency, Amount, AmountInPln FROM Report
-#         WHERE CustomerID = {customer_report_id} and CreationDate = '{creation_date}'""").fetchall()
-#     app.db_connection.commit()
-#     return data
 
 
 # endpoint pobierajacy dane o płatnością i konwertuje je do raportu
 @app.post("/report")
 async def report_post_func(report: RequestReport):
     app.last_payment_info = []
-    pay_by_link_requester(report.pay_by_link, None, False)
-    dp_requester(report.dp, None, False)
-    card_requester(report.card, None, False)
+    pay_by_link_requester(report.pay_by_link, None)
+    dp_requester(report.dp, None)
+    card_requester(report.card, None)
     app.last_payment_info.sort(key=get_date)
     return app.last_payment_info
 
@@ -319,45 +309,17 @@ async def report_pay_id(report: RequestReport):
 
     c_id = try_id(report.pay_by_link, report.dp, report.card)
     add_to_last_report_for_customer(c_id, data_req)
-    # add_to_id_customer_report(c_id, app.last_payment_info)
     id_payment_info[c_id] = app.last_payment_info
     app.last_payment_info.sort(key=get_date)
     return app.last_payment_info
 
 
-
 # endpoint wyświetlający raport dla wskazanego id
 @app.get("/customer-report/{cust_id}")
 async def customer_report_id(cust_id: int):
-    # tu nie działa w takiej wersji zwraca []
+
     data = get_last_report_for_customer(cust_id)
     if data:
         return data
     else:
         raise HTTPException(status_code=400)
-
-
-@app.post("/test")
-async def test():
-    return get_last_report_for_customer(456666666664654564)
-#
-#     cursor = app.db_connection.execute(
-#         f"""INSERT INTO Report (CustomerID, Date, Type, PaymentMean, Description, Currency, Amount, AmountInPln, CreationDate) VALUES
-#                         ({x['customer_id']}, '{x['date']}', '{x['type']}', '{x['payment_mean']}',
-#                           '{x['description']}', '{x['currency']}', {x['amount']}, {x['amount_in_pln']}, '{creation_date}')""")
-#
-#     app.db_connection.commit()
-#     # app.db_connection.row_factory = sqlite3.Row
-#     # app.db_connection.execute(
-#     #     f"""INSERT INTO Report (CustomerID, Date, Type, PaymentMean, Description, Currency, Amount, AmountInPln, CreationDate) VALUES
-#     #                     ({x['customer_id']}, '{x['date']}', '{x['type']}', '{x['payment_mean']}',
-#     #                       '{x['description']}', '{x['currency']}', {x['amount']}, {x['amount_in_pln']}, '{creation_date}')""")
-
-
-
-
-
-
-
-
-
