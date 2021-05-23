@@ -615,7 +615,7 @@ def test_get_exchange_rate(currency: str, iso_date: str, value: float):
 )
 def test_get_utc_time(created_at: str, date_utc: str):
     # testowanie przekształcania daty z iso8601 do UTC
-    assert date_utc == get_utc_time(created_at, "%Y-%m-%dT%H:%M:%S%z")
+    assert date_utc == get_utc_time(created_at)
 
 
 @pytest.mark.parametrize(

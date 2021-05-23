@@ -3,15 +3,12 @@
 # pytest test.py
 
 import string
-from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import PlainTextResponse, HTMLResponse
-from pytz import timezone
-import json
-import urllib.request
-import sqlite3
-from raport_basemodel import *  # modele porzyjmowanych danych
+from models import *  # modele porzyjmowanych danych
+from database_operations import *
+from utils import *
 
 
 app = FastAPI()
@@ -20,7 +17,6 @@ app = FastAPI()
 id_payment_info = {}
 Acce_Char = string.ascii_letters + "ńŃśŚćĆóÓżŻźŹęĘąĄłŁ '-"  # znaki  dozwolone w imieniu i nazwisku
 customer_id = None
-Date_Format = "%Y-%m-%dT%H:%M:%S%z"  # format do jakiego ma być przekształcone created_at
 
 
 # zamiana błędu nieprawidłowych danych z 422 do 400
@@ -54,7 +50,7 @@ def pay_by_link_requester(pbl_array, creation_date, raport=False):
         try_currency(pbl.currency)
 
         # przekonwertowanie daty do UTC i pobranie waluty z danego dnia
-        utc_date = get_utc_time(pbl.created_at, Date_Format)
+        utc_date = get_utc_time(pbl.created_at)
         exchange_rate = get_exchange_rate(pbl.currency, utc_date)
 
         # składanie response_pbl
@@ -92,7 +88,7 @@ def dp_requester(dp_array, creation_date, raport=False):
         try_currency(dp.currency)
 
         # przekonwertowanie daty do UTC i pobranie waluty z danego dnia
-        utc_date = get_utc_time(dp.created_at, Date_Format)
+        utc_date = get_utc_time(dp.created_at)
         exchange_rate = get_exchange_rate(dp.currency, utc_date)
 
         # składanie response_dp
@@ -135,7 +131,7 @@ def card_requester(card_array, creation_date, raport=False):
         try_currency(card.currency)
 
         # przekonwertowanie daty do UTC i pobranie waluty z danego dnia
-        utc_date = get_utc_time(card.created_at, Date_Format)
+        utc_date = get_utc_time(card.created_at)
         exchange_rate = get_exchange_rate(card.currency, utc_date)
 
         # składanie response_card
@@ -159,11 +155,6 @@ def card_requester(card_array, creation_date, raport=False):
             app.last_payment_info.append(converted_card)
         except:
             raise HTTPException(status_code=400)
-
-
-def try_currency(currency):
-    if currency.upper() not in ['EUR', 'USD', 'GBP', 'PLN']:
-        raise HTTPException(status_code=400)
 
 
 # potwierdzenie że wszystkie wysłane id klienta są takie same a następnie zwrócenie id_customer
@@ -194,88 +185,38 @@ def try_id(pbl, dp, card):
     return id_customer
 
 
-# funkcja pobierająca pojedyńczą walute z danego dnia
-# funkcja łączy się z http://api.nbp.pl/
-def get_exchange_rate(currency, utc_date):
-    try:
-        if currency.upper() != "PLN":
-            short_date = utc_date[:10]
-            with urllib.request.urlopen(
-                    f"http://api.nbp.pl/api/exchangerates/rates/c/{currency}/{short_date}/?format=json") as url:
-                exchange_rate = json.loads(url.read().decode())
-                exchange_rate = exchange_rate.get("rates")[0].get("bid")
-                return float(exchange_rate)
-        else:
-            return 1
-    except:
-        raise HTTPException(status_code=400)
-
-
-# funkcja potrzebna do sortowania response po dacie
-def get_date(dictionary):
-    return dictionary.get("date")
-
-
-# funkcja zmieniająca date z formatu iso 8061 do UTC
-def get_utc_time(created_at, fmt):
-    try:
-        iso_time = datetime.strptime(str(created_at), fmt)
-        date_utc = iso_time.astimezone(timezone('UTC'))
-        return date_utc.strftime(Date_Format).replace("+0000", "Z")
-    except:
-        raise HTTPException(status_code=400)
-
-
+########################################################################################################################
 def send_report_to_db(converted, creation_date, raport: bool):
     if not raport:
         return
-    app.db_connection.execute(
-        f"""INSERT INTO Report
-        (CustomerID, Date, Type, PaymentMean, Description, Currency, Amount, AmountInPln, CreationDate)
-        VALUES ({converted['customer_id']}, '{converted['date']}', '{converted['type']}',
-        '{converted['payment_mean']}', '{converted['description']}', '{converted['currency']}',
-        {converted['amount']}, {converted['amount_in_pln']}, '{creation_date}')""")
-    app.db_connection.commit()
+    save_report(app, converted, creation_date)
 
 
-def try_id_database(try_id: int, category: str):
-    app.db_connection.row_factory = sqlite3.Row
-    id_exist = app.db_connection.execute(
-        f"SELECT 1 FROM {category} WHERE CustomerID = {try_id}").fetchone()
-    if id_exist is None:
-        return False
-    return True
+def try_id_database(tested_id: int, category: str):
+    return test_id(app, category, tested_id) is not None
 
 
 def add_to_last_report_for_customer(customer_id, creation_date):
     if not try_id_database(customer_id, "LastReportForCustomer"):
-        # app.db_connection.row_factory = sqlite3.Row
-        app.db_connection.execute(
-            f"""INSERT INTO LastReportForCustomer (CustomerID, LastReportDate)
-            VALUES ({customer_id}, '{creation_date}')""")
+        insert_last_report(app, customer_id, creation_date)
 
     elif try_id_database(customer_id, "LastReportForCustomer"):
-        # app.db_connection.row_factory = sqlite3.Row
-        app.db_connection.execute(
-            f"""UPDATE LastReportForCustomer SET LastReportDate = '{creation_date}' WHERE CustomerID = {customer_id}""")
-    app.db_connection.commit()
+        update_last_report(app, customer_id, creation_date)
 
 
 def get_last_report_for_customer(customer_id):
     if not try_id_database(customer_id, "LastReportForCustomer"):
         raise HTTPException(status_code=400)
 
-    last_report_date = app.db_connection.execute(
-        f"""SELECT LastReportDate FROM LastReportForCustomer WHERE CustomerID = {customer_id}""").fetchone()
-    app.db_connection.commit()
+    last_report_date = get_last_report_date(app, customer_id)
+    if last_report_date is None:
+        raise HTTPException(status_code=400)
 
-    data = app.db_connection.execute(
-        f"""SELECT CustomerID customer_id, Date date, Type type, PaymentMean payment_mean, Description description,
-         Currency currency, Amount amount, AmountInPln amount_in_pln FROM Report
-         WHERE CustomerID = {customer_id} and CreationDate = '{last_report_date["LastReportDate"]}'
-         ORDER BY Date ASC""").fetchall()
-    app.db_connection.commit()
-    return data
+    last_report = get_report_for_customer_by_date(app, customer_id, last_report_date["LastReportDate"])
+    if last_report is None:
+        raise HTTPException(status_code=400)
+
+    return last_report
 
 
 @app.get("/", response_class=HTMLResponse)
