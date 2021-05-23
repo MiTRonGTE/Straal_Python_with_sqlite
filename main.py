@@ -10,9 +10,7 @@ from models import *  # modele porzyjmowanych danych
 from database_operations import *
 from utils import *
 
-
 app = FastAPI()
-
 
 id_payment_info = {}
 Acce_Char = string.ascii_letters + "ńŃśŚćĆóÓżŻźŹęĘąĄłŁ '-"  # znaki  dozwolone w imieniu i nazwisku
@@ -185,7 +183,6 @@ def try_id(pbl, dp, card):
     return id_customer
 
 
-########################################################################################################################
 def send_report_to_db(converted, creation_date, raport: bool):
     if not raport:
         return
@@ -228,6 +225,7 @@ def root():
             <li><strong>Heroku</strong> - <a href="https://recruitment-task-straal-db.herokuapp.com/">https://recruitment-task-straal-db.herokuapp.com/</a></li>
         </ul>
     """
+
 
 # endpoint pobierajacy dane o płatnością i konwertuje je do raportu
 @app.post("/report")
