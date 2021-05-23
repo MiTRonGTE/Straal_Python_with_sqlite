@@ -13,7 +13,7 @@ from utils import *
 app = FastAPI()
 
 id_payment_info = {}
-Acce_Char = string.ascii_letters + "ńŃśŚćĆóÓżŻźŹęĘąĄłŁ '-"  # znaki  dozwolone w imieniu i nazwisku
+Acce_Char = string.ascii_letters + " '-"  # znaki  dozwolone w imieniu i nazwisku
 customer_id = None
 
 
@@ -219,6 +219,7 @@ def get_last_report_for_customer(customer_id):
 @app.get("/", response_class=HTMLResponse)
 def root():
     return """
+    <title> Straal Python Kamil Pawlicki Recruitment Task</title>
     <h1 style="color: #5e9ca0;"><span style="color: #666699;">Kamil Pawlicki</span></h1>
         <ul>
             <li><strong>Github</strong> - <a href="https://github.com/MiTRonGTE/Straal_Python_with_sqlite">https://github.com/MiTRonGTE/Straal_Python_with_sqlite</a></li>
