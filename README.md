@@ -127,4 +127,4 @@ https://recruitment-task-straal-db.herokuapp.com/docs
     "amount_in_pln": int,
   }
  ]
-    
+ ```
